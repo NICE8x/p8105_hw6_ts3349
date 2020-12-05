@@ -54,11 +54,9 @@ boot_sample = function(df) {
 
 boot_straps = 
   data_frame(
-    strap_number = 1:10,
-    strap_sample = rerun(10, boot_sample(weather_df))
+    strap_number = 1:5000,
+    strap_sample = rerun(5000, boot_sample(weather_df))
   )
-
-#boot_straps
 
 
 bootstrap_results = 
@@ -69,22 +67,46 @@ bootstrap_results =
     results_2 = map(models, broom::tidy)) %>%
   select(-strap_sample, -models) %>% 
   unnest(results,
-         results_2) 
+         results_2) %>% 
+  select(strap_number, r.squared, term, estimate) %>%
+  pivot_wider(names_from = term,
+              values_from = estimate) %>%
+  janitor::clean_names() %>%
+  mutate(log_value = log(intercept * tmin))
 
-#bootstrap_results
-
-bootstrap_results %>% 
-  select(strap_number, r.squared, term, estimate)
-  #group_by(term) #%>% 
-  mutate(log_value = )
-  #summarize(boot_se = sd(estimate)) %>% 
-  #knitr::kable(digits = 3)
+bootstrap_results
 ```
 
 
+```{r prob 3 plots}
+bootstrap_results %>% 
+  ggplot(aes(x = tmin)) + 
+  geom_density() + 
+  labs(
+    title = "5000 Boostrap Estimates of Minimum Temperature (C)",
+    x = "Minimum Temperature (C)",
+    y = "Density",
+    caption = "Data from the New York NOAA weather stations"
+  )
+
+bootstrap_results %>%
+  ggplot(aes(x = log_value)) + 
+  geom_density()+ 
+  labs(
+    title = "5000 Boostrap Estimates of log(B_0_hat * B_1_hat)",
+    x = "log(B_0_hat * B_1_hat)",
+    y = "Density",
+    caption = "Data from the New York NOAA weather stations"
+  )
+```
 
 
-
-
-
+```{r problem 3 quantiles}
+bootstrap_results %>% 
+  summarize(
+    ci_lower_tmin = quantile(tmin, 0.025), 
+    ci_upper_tmin = quantile(tmin, 0.975),
+    ci_lower_log = quantile(log_value, 0.025), 
+    ci_upper_log = quantile(log_value, 0.975))
+```
 
