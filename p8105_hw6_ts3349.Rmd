@@ -1,0 +1,87 @@
+---
+title: "p8105_hw6_ts3349"
+author: "Tessa Senders"
+date: "12/5/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r import libraries}
+library(tidyverse)
+library(broom)
+library(p8105.datasets)
+```
+
+
+## Problem 1
+
+
+
+
+
+
+## Problem 2
+
+
+
+
+## Problem 3
+
+
+```{r prob 3 load data}
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
+```
+
+```{r prob 3 draw samples}
+set.seed(1)
+
+sim_df_const = 
+  tibble(
+    x = rnorm(n_samp, 1, 1),
+    error = rnorm(n_samp, 0, 1),
+    y = 2 + 3 * x + error
+  )
+
+boot_straps = 
+  data_frame(
+    strap_number = 1:10,
+    strap_sample = rerun(10, boot_sample(sim_df_nonconst))
+  )
+
+boot_straps
+
+
+bootstrap_results = 
+  boot_straps %>% 
+  mutate(
+    models = map(strap_sample, ~lm(y ~ x, data = .x) ),
+    results = map(models, broom::tidy)) %>% 
+  select(-strap_sample, -models) %>% 
+  unnest(results) 
+
+bootstrap_results %>% 
+  group_by(term) %>% 
+  summarize(boot_se = sd(estimate)) %>% 
+  knitr::kable(digits = 3)
+```
+
+
+
+
+
+
+
+
