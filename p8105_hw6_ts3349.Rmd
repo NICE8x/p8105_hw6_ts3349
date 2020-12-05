@@ -48,34 +48,37 @@ weather_df =
 ```{r prob 3 draw samples}
 set.seed(1)
 
-sim_df_const = 
-  tibble(
-    x = rnorm(n_samp, 1, 1),
-    error = rnorm(n_samp, 0, 1),
-    y = 2 + 3 * x + error
-  )
+boot_sample = function(df) {
+  sample_frac(df, replace = TRUE)
+}
 
 boot_straps = 
   data_frame(
     strap_number = 1:10,
-    strap_sample = rerun(10, boot_sample(sim_df_nonconst))
+    strap_sample = rerun(10, boot_sample(weather_df))
   )
 
-boot_straps
+#boot_straps
 
 
 bootstrap_results = 
   boot_straps %>% 
   mutate(
-    models = map(strap_sample, ~lm(y ~ x, data = .x) ),
-    results = map(models, broom::tidy)) %>% 
+    models = map(strap_sample, ~lm(tmax ~ tmin, data = .x)),
+    results = map(models, broom::glance),  
+    results_2 = map(models, broom::tidy)) %>%
   select(-strap_sample, -models) %>% 
-  unnest(results) 
+  unnest(results,
+         results_2) 
+
+#bootstrap_results
 
 bootstrap_results %>% 
-  group_by(term) %>% 
-  summarize(boot_se = sd(estimate)) %>% 
-  knitr::kable(digits = 3)
+  select(strap_number, r.squared, term, estimate)
+  #group_by(term) #%>% 
+  mutate(log_value = )
+  #summarize(boot_se = sd(estimate)) %>% 
+  #knitr::kable(digits = 3)
 ```
 
 
