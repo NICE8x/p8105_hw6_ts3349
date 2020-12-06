@@ -13,6 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(broom)
 library(p8105.datasets)
+library(purrr)
+library(modelr)
 ```
 
 
@@ -27,9 +29,63 @@ library(p8105.datasets)
 
 
 ```{r load and tidy data}
+birthweight_df <- read_csv("./data/birthweight.csv") %>%
+  janitor::clean_names() %>%
+  mutate(babysex = as_factor(babysex),
+         frace = as_factor(frace),
+         malform = as_factor(malform),
+         mrace = as_factor(mrace))
+
+birthweight_df %>% 
+  map(~sum(is.na(.)))
+```
+
+```{r prob 2, 2 given models}
+set.seed(1)
+fit_1 = lm(bwt ~ blength + gaweeks, data = birthweight_df)
+fit_2 = lm(bwt ~ bhead * blength * babysex, data = birthweight_df)
+
+cv_df =
+  crossv_mc(birthweight_df, 100) %>% 
+  mutate(
+    train = map(train, as_tibble),
+    test = map(test, as_tibble))
+
+cv_df = 
+  cv_df %>% 
+  mutate(
+    simple_model = map(train, ~lm(bwt ~ blength + gaweeks, data = .x)),
+    interaction_model = map(train, ~lm(bwt ~ bhead * blength * babysex, data = .x))
+    #my_model = map() 
+  ) %>%
+    
+  mutate(
+    rmse_simple = map2_dbl(simple_model, test, ~rmse(model = .x, data = .y)),
+    rmse_interaction = map2_dbl(interaction_model, test, ~rmse(model = .x, data = .y)),
+    rmse_smooth = map2_dbl(smooth_mod, test, ~rmse(model = .x, data = .y))
+    )
+
+
+
+
+
+
+#fit_1 %>% 
+#  broom::glance()
+#fit_1 %>%
+#  broom::tidy()
+
+#fit_2 %>%
+#  broom::glance()
+#fit_2 %>%
+#  broom::tidy()
+
 ```
 
 
+One using length at birth and gestational age as predictors (main effects only)
+One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
+Make this comparison in terms of the cross-validated prediction error; use crossv_mc and functions in purrr as appropriate
 
 ## Problem 3
 
