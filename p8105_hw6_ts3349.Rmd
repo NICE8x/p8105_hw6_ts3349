@@ -87,6 +87,7 @@ models_results_df %>%
 
 Most of the odds ratios are less than 1, indicating that the outcome (resolution, i.e. closed with an arrest) is often less likely for male homicide victims than for female homicide victims.
 
+
 ## Problem 2
 
 
@@ -101,6 +102,7 @@ birthweight_df <- read_csv("./data/birthweight.csv") %>%
 birthweight_df %>% 
   map(~sum(is.na(.)))
 ```
+
 
 ```{r prob 2, 2 given models}
 set.seed(1)
@@ -124,30 +126,25 @@ cv_df =
   mutate(
     rmse_simple = map2_dbl(simple_model, test, ~rmse(model = .x, data = .y)),
     rmse_interaction = map2_dbl(interaction_model, test, ~rmse(model = .x, data = .y)),
-    rmse_smooth = map2_dbl(smooth_mod, test, ~rmse(model = .x, data = .y))
+    #rmse_my_model = map2_dbl(my_model, test, ~rmse(model = .x, data = .y))
     )
 
-
-
-
-
-
-#fit_1 %>% 
-#  broom::glance()
-#fit_1 %>%
-#  broom::tidy()
-
-#fit_2 %>%
-#  broom::glance()
-#fit_2 %>%
-#  broom::tidy()
-
+cv_df %>% 
+  select(starts_with("rmse")) %>% 
+  pivot_longer(
+    everything(),
+    names_to = "model", 
+    values_to = "rmse",
+    names_prefix = "rmse_") %>% 
+  mutate(model = fct_inorder(model)) %>% 
+  ggplot(aes(x = model, y = rmse)) + geom_violin()
 ```
 
 
 One using length at birth and gestational age as predictors (main effects only)
 One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
 Make this comparison in terms of the cross-validated prediction error; use crossv_mc and functions in purrr as appropriate
+
 
 ## Problem 3
 
