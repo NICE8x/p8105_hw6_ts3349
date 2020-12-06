@@ -26,6 +26,9 @@ library(p8105.datasets)
 ## Problem 2
 
 
+```{r load and tidy data}
+```
+
 
 
 ## Problem 3
