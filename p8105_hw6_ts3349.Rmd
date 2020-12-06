@@ -21,9 +21,71 @@ library(modelr)
 ## Problem 1
 
 
+```{r read in data prob 1}
+homicide_df =
+  read_csv("./data/homicide-data.csv", na = c("", "NA", "Unknown")) %>%
+  mutate(
+    city_state = str_c(city, state, sep = ", "),
+    victim_age = as.numeric(victim_age),
+    resolution = case_when(
+    disposition == "Closed without arrest" ~ 0,
+    disposition == "Open/No arrest" ~ 0,
+    disposition == "Closed by arrest" ~ 1)
+  ) %>%
+  filter(victim_race %in% c("White", "Black"),
+    city_state != "Tulsa, AL") %>%
+  select(city_state, resolution, victim_age, victim_race, victim_sex)
+```
 
 
+```{r prob 1 part 2}
+baltimore_df =
+  homicide_df %>%
+  filter(city_state == "Baltimore, MD")
 
+glm(resolution ~ victim_age + victim_race + victim_sex, data = baltimore_df, family = binomial()) %>% broom::tidy() %>%
+  mutate(OR = exp(estimate),
+         CI_lower = exp(estimate -1.96 * std.error),
+         CI_upper = exp(estimate + 1.96 * std.error)) %>%
+  select(term, OR, starts_with("CI")) %>%
+  knitr::kable(digits = 3)
+```
+
+
+```{r prob 1 part 3}
+models_results_df = 
+  homicide_df %>%
+  nest(data = -city_state) %>%
+  mutate(
+    models = 
+      map(.x = data, ~glm(resolution ~ victim_age + victim_race + victim_sex, data = .x, family = binomial())),
+    results = map(models, broom::tidy) 
+  ) %>%
+    select(city_state, results) %>%
+  unnest(results) %>%
+  mutate(OR = exp(estimate),
+         CI_lower = exp(estimate -1.96 * std.error),
+         CI_upper = exp(estimate + 1.96 * std.error)) %>%
+  select(city_state, term, OR, starts_with("CI"))
+```
+
+
+```{r prob 1 part 4}
+models_results_df %>%
+  filter(term == "victim_sexMale") %>%
+  mutate(city_state = fct_reorder(city_state, OR)) %>%
+  ggplot(aes(x = city_state, y = OR)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper)) +
+  theme(axis.text = element_text(angle = 270, vjust = 0.5, hjust = 1)) +
+  labs(
+    title = "Confidence Intervals for The Odds Ratios of \n Unsolved Homicides by Sex in Various Cities",
+    x = "City and State",
+    y = "Odds Ratio(OR)",
+    caption = "Data from the Washington Post GitHub")
+```
+
+Most of the odds ratios are less than 1, indicating that the outcome (resolution, i.e. closed with an arrest) is often less likely for male homicide victims than for female homicide victims.
 
 ## Problem 2
 
