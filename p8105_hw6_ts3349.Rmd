@@ -20,6 +20,7 @@ library(modelr)
 
 ## Problem 1
 
+Read in homicide data.
 
 ```{r read in data prob 1}
 homicide_df =
@@ -37,6 +38,7 @@ homicide_df =
   select(city_state, resolution, victim_age, victim_race, victim_sex)
 ```
 
+Generate a table of Confidence Intervals for the Odds Ratios
 
 ```{r prob 1 part 2}
 baltimore_df =
@@ -51,6 +53,7 @@ glm(resolution ~ victim_age + victim_race + victim_sex, data = baltimore_df, fam
   knitr::kable(digits = 3)
 ```
 
+Fix data to then generate a plot of confidence intervals.
 
 ```{r prob 1 part 3}
 models_results_df = 
@@ -69,6 +72,7 @@ models_results_df =
   select(city_state, term, OR, starts_with("CI"))
 ```
 
+Create a plot of Confidence Intervals
 
 ```{r prob 1 part 4}
 models_results_df %>%
@@ -90,6 +94,7 @@ Most of the odds ratios are less than 1, indicating that the outcome (resolution
 
 ## Problem 2
 
+Read in birthweight data and check that there are no missing values (there are no missing values).
 
 ```{r load and tidy data}
 birthweight_df <- read_csv("./data/birthweight.csv") %>%
@@ -103,19 +108,49 @@ birthweight_df %>%
   map(~sum(is.na(.)))
 ```
 
+Create a prelimiary model using backward stepwise selection.
 
 ```{r prob 2 create a model}
 full_model_bw <- lm(bwt ~ ., data = birthweight_df)
 step(full_model_bw, direction='backward')
 ```
 
+Compare the model generated from backward stepwise selection with the same model now including mother's age at delivery (momage) as a covariate.
+
 ```{r generate model part 2}
 my_model_poten_1 <- lm(bwt ~ babysex + bhead + blength + delwt + fincome + 
     gaweeks + mheight + mrace + parity + ppwt + smoken, data = birthweight_df)
 
 my_model_poten_2 <- lm(bwt ~ babysex + bhead + blength + delwt + fincome + 
-    gaweeks + mheight +mheight^2 + mrace + parity + ppwt + smoken, data = birthweight_df)
+    gaweeks +mheight + mrace + parity + ppwt + smoken + momage, data = birthweight_df)
+
+anova(my_model_poten_1,my_model_poten_2)
+
+summary(my_model_poten_1)
+summary(my_model_poten_2)
 ```
+
+Choose the smaller model and plot the residuals vs fitted values.
+
+```{r plot residuals}
+my_model_fit = lm(bwt ~ babysex + bhead + blength + delwt + fincome +
+    gaweeks + mheight + mrace + parity + ppwt + smoken, data = birthweight_df)
+
+birthweight_df %>% 
+modelr::add_residuals(my_model_fit) %>%
+modelr::add_predictions(my_model_fit) %>%
+  ggplot(aes(x = pred, y = resid)) + geom_point() + 
+  labs(
+    title = "Residuals versus Fitted Values \n for My Birthweight Linear Model",
+    x = "Fitted Values",
+    y = "Residuals",
+    caption = "Data regarding the birthweight of approx 4000 children and other related variables"
+  )
+
+
+```
+
+Use cross-validation to compare the three models.  Plot the RMSEs for each model.
 
 ```{r prob 2, 2 given models}
 set.seed(1)
@@ -132,14 +167,15 @@ cv_df =
   cv_df %>% 
   mutate(
     simple_model = map(train, ~lm(bwt ~ blength + gaweeks, data = .x)),
-    interaction_model = map(train, ~lm(bwt ~ bhead * blength * babysex, data = .x))
-    #my_model = map() 
+    interaction_model = map(train, ~lm(bwt ~ bhead * blength * babysex, data = .x)),
+    my_model = map(train, ~lm(bwt ~ babysex + bhead + blength + delwt + fincome + 
+    gaweeks + mheight + mrace + parity + ppwt + smoken, data = birthweight_df))
   ) %>%
     
   mutate(
     rmse_simple = map2_dbl(simple_model, test, ~rmse(model = .x, data = .y)),
     rmse_interaction = map2_dbl(interaction_model, test, ~rmse(model = .x, data = .y)),
-    #rmse_my_model = map2_dbl(my_model, test, ~rmse(model = .x, data = .y))
+    rmse_my_model = map2_dbl(my_model, test, ~rmse(model = .x, data = .y))
     )
 
 cv_df %>% 
@@ -150,17 +186,23 @@ cv_df %>%
     values_to = "rmse",
     names_prefix = "rmse_") %>% 
   mutate(model = fct_inorder(model)) %>% 
-  ggplot(aes(x = model, y = rmse)) + geom_violin()
+  ggplot(aes(x = model, y = rmse)) + geom_violin() + 
+  labs(
+    title = "RMSE for Each of the Three Birthweight Models",
+    x = "Model",
+    y = "RMSE",
+    caption = "Data regarding the birthweight of approx 4000 children and other related variables"
+  )
 ```
 
+I started by building a preliminary model using backward stepwise regression.  After that I compared that model to the same model but also including the covariate momage (the mother's age at delivery in years) because I have previously read that the age of the mother can have significant impacts on the birth of the child including its birthweight.  I compared the two models using ANOVA (they were nested models), but found that adding the covariate momage did not improve the model.  So in the end my final model was the one I found after performing backward stepwise regression.  
 
-One using length at birth and gestational age as predictors (main effects only)
-One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
-Make this comparison in terms of the cross-validated prediction error; use crossv_mc and functions in purrr as appropriate
+My model seems to be the best model out of the three proposed models since it clearly has the lowest average RMSE.  The simple model that included the covariates birth and gestational age has the highest average RMSE.  The model that uses head circumference, length, sex, and all interactions performs better than the simple model but still has a higher average RMSE than my proposed model created from backward stepwise regression.
 
 
 ## Problem 3
 
+Load weather data.
 
 ```{r prob 3 load data}
 weather_df = 
@@ -175,6 +217,8 @@ weather_df =
     tmax = tmax / 10) %>%
   select(name, id, everything())
 ```
+
+Draw bootstrap samples.
 
 ```{r prob 3 draw samples}
 set.seed(1)
@@ -208,14 +252,15 @@ bootstrap_results =
 bootstrap_results
 ```
 
+Generate plots showing bootstrap results.
 
 ```{r prob 3 plots}
 bootstrap_results %>% 
-  ggplot(aes(x = tmin)) + 
+  ggplot(aes(x = r_squared)) + 
   geom_density() + 
   labs(
-    title = "5000 Boostrap Estimates of Minimum Temperature (C)",
-    x = "Minimum Temperature (C)",
+    title = "5000 Boostrap Estimates of r^2_hat",
+    x = "r^2_hat",
     y = "Density",
     caption = "Data from the New York NOAA weather stations"
   )
@@ -231,12 +276,16 @@ bootstrap_results %>%
   )
 ```
 
+The distributions of both the R^2 values and the log(B_0_hat*B_1_hat) values seem to follow fairly normal distributions.  For the distribution of R^2 values, the plot seems to be slightly skewed left.  The mean of the distribution seems to be around 0.91.  For the distribution of log(B_0_hat times B_1_hat), the mean of the distribution seems to be around 2.0125.
+
+
+Generate confidence intervals from the bootstrap results.
 
 ```{r problem 3 quantiles}
 bootstrap_results %>% 
   summarize(
-    ci_lower_tmin = quantile(tmin, 0.025), 
-    ci_upper_tmin = quantile(tmin, 0.975),
+    ci_lower_rsqd = quantile(r_squared, 0.025), 
+    ci_upper_rsqd = quantile(r_squared, 0.975),
     ci_lower_log = quantile(log_value, 0.025), 
     ci_upper_log = quantile(log_value, 0.975))
 ```
