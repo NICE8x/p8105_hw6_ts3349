@@ -104,6 +104,19 @@ birthweight_df %>%
 ```
 
 
+```{r prob 2 create a model}
+full_model_bw <- lm(bwt ~ ., data = birthweight_df)
+step(full_model_bw, direction='backward')
+```
+
+```{r generate model part 2}
+my_model_poten_1 <- lm(bwt ~ babysex + bhead + blength + delwt + fincome + 
+    gaweeks + mheight + mrace + parity + ppwt + smoken, data = birthweight_df)
+
+my_model_poten_2 <- lm(bwt ~ babysex + bhead + blength + delwt + fincome + 
+    gaweeks + mheight +mheight^2 + mrace + parity + ppwt + smoken, data = birthweight_df)
+```
+
 ```{r prob 2, 2 given models}
 set.seed(1)
 fit_1 = lm(bwt ~ blength + gaweeks, data = birthweight_df)
