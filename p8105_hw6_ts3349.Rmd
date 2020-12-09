@@ -2,7 +2,8 @@
 title: "p8105_hw6_ts3349"
 author: "Tessa Senders"
 date: "12/5/2020"
-output: html_document
+output: github_document
+always_allow_html: true
 ---
 
 ```{r setup, include=FALSE}
@@ -260,8 +261,8 @@ bootstrap_results %>%
   ggplot(aes(x = r_squared)) + 
   geom_density() + 
   labs(
-    title = "5000 Boostrap Estimates of r^2_hat",
-    x = "r^2_hat",
+    title = "5000 Boostrap Estimates of r^2",
+    x = "r^2",
     y = "Density",
     caption = "Data from the New York NOAA weather stations"
   )
@@ -291,9 +292,9 @@ bootstrap_results %>%
     ci_upper_log = quantile(log_value, 0.975)) %>%
   rename(`R^2 Lower CI` = ci_lower_rsqd,
          `R^2 Upper CI` = ci_upper_rsqd,
-         `log(B_0_hat*B_1_hat) Lower CI` = ci_lower_log,
-         `log(B_0_hat*B_1_hat) Upper CI` = ci_upper_log) %>%
-  kbl(caption = "95% Confidence Intervals for R^2_hat and log(B_0_hat*B_1_hat)") %>%
+         `log(B0hat*B1hat) Lower CI` = ci_lower_log,
+         `log(B0hat*B1hat) Upper CI` = ci_upper_log) %>%
+  kbl(caption = "95% Confidence Intervals for R^2 and log(B0hat*B1hat)") %>%
   kable_classic(full_width = F, html_font = "Cambria") 
   
 ```
