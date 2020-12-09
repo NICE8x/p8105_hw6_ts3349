@@ -122,7 +122,7 @@ my_model_poten_1 <- lm(bwt ~ babysex + bhead + blength + delwt + fincome +
     gaweeks + mheight + mrace + parity + ppwt + smoken, data = birthweight_df)
 
 my_model_poten_2 <- lm(bwt ~ babysex + bhead + blength + delwt + fincome + 
-    gaweeks +mheight + mrace + parity + ppwt + smoken + momage, data = birthweight_df)
+    gaweeks + mheight + mrace + parity + ppwt + smoken + momage, data = birthweight_df)
 
 anova(my_model_poten_1,my_model_poten_2)
 
@@ -249,7 +249,7 @@ bootstrap_results =
   janitor::clean_names() %>%
   mutate(log_value = log(intercept * tmin))
 
-bootstrap_results
+head(bootstrap_results)
 ```
 
 Generate plots showing bootstrap results.
